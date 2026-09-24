@@ -139,15 +139,22 @@
   .saved { color: var(--ok); font-size: 14px; font-weight: 600; }
 
   .card.sign { justify-content: flex-start; padding-top: clamp(22px, 3.5vh, 36px); }
-  .pad-wrap { flex: 1; width: 100%; min-height: 140px; position: relative; }
+  .pads { flex: 1; width: 100%; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+  .pad-wrap { flex: 1; width: 100%; min-height: 96px; position: relative; }
   .pad {
     position: absolute; inset: 0; width: 100%; height: 100%;
-    background: #fff; border: 2px dashed #e3c9d6; border-radius: 18px; touch-action: none; display: block;
+    background: #fff; border: 2.5px dashed var(--pc, #e3c9d6); border-radius: 18px; touch-action: none; display: block;
   }
-  .pad-hint { position: absolute; inset: 0; display: grid; place-items: center; color: #d6c2cf; font-size: clamp(20px, 3.4vw, 30px); pointer-events: none; font-weight: 600; }
-  .pens { display: flex; gap: 10px; align-items: center; }
-  .pen { width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; box-shadow: 0 0 0 1px rgba(0,0,0,.08) inset; }
-  .pen[aria-pressed="true"] { border-color: var(--ink); }
+  .pad-hint { position: absolute; inset: 0; display: grid; place-items: center; color: var(--pc, #d6c2cf); opacity: .45; font-size: clamp(18px, 3vw, 26px); pointer-events: none; font-weight: 600; }
+  .pad-name {
+    position: absolute; top: 8px; left: 10px; z-index: 1; pointer-events: none;
+    background: var(--pc); color: #fff; font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 99px;
+  }
+  .pad-clear {
+    position: absolute; top: 6px; right: 8px; z-index: 1; background: #f1e6ee; color: var(--ink);
+    font-size: 13px; padding: 5px 10px; border-radius: 99px;
+  }
+  .pad-clear[hidden] { display: none; }
   .sign-img { flex: 1; min-height: 0; max-width: 100%; object-fit: contain; border-radius: 14px; background: #fff; box-shadow: 0 0 0 1px #eee; }
 
   /* ---------- Gallery ---------- */
@@ -258,7 +265,7 @@
 'use strict';
 
 /* 卡片內容加密後放在這裡（原文在 src/cards.js，用 build.mjs 產生） */
-const ENC = {"v":1,"iter":250000,"salt":"L5iXzDnHGFoEKurCN0LmGg==","iv":"EVpNqeIXuYXwqj6/","ct":"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"};
+const ENC = {"v":1,"iter":250000,"salt":"zFlXImyX8dAOnt67RsCOvA==","iv":"Y8dw4dE2Ne39qUX0","ct":"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"};
 let CARDS = [];
 const MAX_REC_SECONDS = 60;
 
@@ -499,19 +506,34 @@ async function stopRecording() {
 }
 
 /* ----- 簽名卡 ----- */
-const PENS = ['#2b1d2e', '#ff5c8a', '#3a6fd8'];
+// 每一格簽名框：誰簽、用什麼顏色（在 cards.js 的 pads 設定）
 function renderSignCard(i, state, data) {
   const c = CARDS[i], card = cardEl(i);
+  const pads = c.pads && c.pads.length ? c.pads : [{ name: '', color: '#2b1d2e' }];
   card.className = 'card compact sign';
   if (state === 'idle') {
     card.innerHTML = cardInner(c, c.to) + `
-      <div class="pad-wrap"><canvas class="pad"></canvas><div class="pad-hint" lang="th">เซ็นตรงนี้ · Sign here</div></div>
+      <div class="pads">${pads.map(p => `
+        <div class="pad-wrap" style="--pc:${esc(p.color)}">
+          <canvas class="pad"></canvas>
+          ${p.name ? `<span class="pad-name">${esc(p.name)}</span>` : ''}
+          <div class="pad-hint" lang="th">เซ็นตรงนี้ · Sign here</div>
+          <button type="button" class="pad-clear" hidden>🧽 清除</button>
+        </div>`).join('')}
+      </div>
       <div class="done-actions">
-        <div class="pens">${PENS.map((p, k) => `<button type="button" class="pen" style="background:${p}" aria-label="筆的顏色" aria-pressed="${k === 0}" data-c="${p}"></button>`).join('')}</div>
-        <button type="button" class="btn" data-act="clear">🧽 清除</button>
         <button type="button" class="btn btn-go" data-act="save" disabled>✓ 完成</button>
       </div>` + numTag(i);
-    setupPad(card, i);
+    const saveBtn = card.querySelector('[data-act="save"]');
+    const ctrls = [...card.querySelectorAll('.pad-wrap')].map((w, k) =>
+      setupPad(w, pads[k].color, () => { saveBtn.disabled = !ctrls.some(x => x.dirty()); }));
+    saveBtn.onclick = async () => {
+      saveBtn.disabled = true;
+      const blob = await composeSignatures(ctrls.map((x, k) => ({ canvas: x.canvas, name: pads[k].name, color: pads[k].color })));
+      if (!blob) { toast('簽名存檔失敗'); saveBtn.disabled = false; return; }
+      await saveItem('sign', c.label, blob);
+      renderSignCard(i, 'done', { url: URL.createObjectURL(blob) });
+    };
   } else if (state === 'done') {
     card.innerHTML = cardInner(c.thanks) + `
       <img class="sign-img" src="${data.url}" alt="簽名">
@@ -520,11 +542,12 @@ function renderSignCard(i, state, data) {
     card.querySelector('[data-act="again"]').onclick = () => renderSignCard(i, 'idle');
   }
 }
-function setupPad(card, i) {
-  const canvas = card.querySelector('canvas'), hint = card.querySelector('.pad-hint');
-  const saveBtn = card.querySelector('[data-act="save"]');
+// 一格簽名框：固定筆色，回傳 { canvas, dirty() }
+function setupPad(wrap, color, onChange) {
+  const canvas = wrap.querySelector('canvas'), hint = wrap.querySelector('.pad-hint');
+  const clearBtn = wrap.querySelector('.pad-clear');
   const ctx = canvas.getContext('2d');
-  let color = PENS[0], drawing = false, last = null, dirty = false, strokes = [];
+  let drawing = false, last = null, dirty = false, strokes = [];
   function size() {
     const r = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
     if (!r.width || !r.height) return;
@@ -544,7 +567,7 @@ function setupPad(card, i) {
   canvas.addEventListener('pointerdown', (e) => {
     e.preventDefault(); canvas.setPointerCapture(e.pointerId);
     drawing = true; last = pos(e); strokes.push({ color, pts: [last] }); line(last, last, color);
-    if (!dirty) { dirty = true; hint.style.display = 'none'; saveBtn.disabled = false; }
+    if (!dirty) { dirty = true; hint.style.display = 'none'; clearBtn.hidden = false; onChange(); }
   });
   canvas.addEventListener('pointermove', (e) => {
     if (!drawing) return;
@@ -552,22 +575,34 @@ function setupPad(card, i) {
   });
   const end = () => { drawing = false; };
   canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
-  card.querySelectorAll('.pen').forEach(b => b.onclick = () => {
-    color = b.dataset.c; card.querySelectorAll('.pen').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-  });
-  card.querySelector('[data-act="clear"]').onclick = () => {
-    strokes = []; redraw(); dirty = false; hint.style.display = ''; saveBtn.disabled = true;
-  };
-  saveBtn.onclick = async () => {
-    // 輸出時墊白底，存成 PNG
-    const out = document.createElement('canvas'); out.width = canvas.width; out.height = canvas.height;
-    const o = out.getContext('2d'); o.fillStyle = '#ffffff'; o.fillRect(0, 0, out.width, out.height); o.drawImage(canvas, 0, 0);
-    const blob = await new Promise(res => out.toBlob(res, 'image/png'));
-    if (!blob) { toast('簽名存檔失敗'); return; }
-    await saveItem('sign', CARDS[i].label, blob);
-    renderSignCard(i, 'done', { url: URL.createObjectURL(blob) });
+  clearBtn.onclick = () => {
+    strokes = []; redraw(); dirty = false; hint.style.display = ''; clearBtn.hidden = true; onChange();
   };
   new ResizeObserver(size).observe(canvas);
+  return { canvas, dirty: () => dirty };
+}
+
+// 把幾格簽名上下拼成一張白底 PNG，每格左上角標名字
+async function composeSignatures(parts) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(...parts.map(p => p.canvas.width));
+  const gap = Math.round(12 * dpr);
+  const h = parts.reduce((s, p) => s + p.canvas.height, 0) + gap * (parts.length - 1);
+  const out = document.createElement('canvas'); out.width = w; out.height = h;
+  const o = out.getContext('2d');
+  o.fillStyle = '#ffffff'; o.fillRect(0, 0, w, h);
+  let y = 0;
+  parts.forEach((p, k) => {
+    if (k) { o.fillStyle = '#eee3ea'; o.fillRect(0, y - gap / 2 - dpr, w, 2 * dpr); }
+    o.drawImage(p.canvas, 0, y);
+    if (p.name) {
+      o.font = `700 ${Math.round(15 * dpr)}px ${getComputedStyle(document.body).fontFamily}`;
+      o.fillStyle = p.color; o.textBaseline = 'top';
+      o.fillText(p.name, Math.round(12 * dpr), y + Math.round(10 * dpr));
+    }
+    y += p.canvas.height + gap;
+  });
+  return new Promise(res => out.toBlob(res, 'image/png'));
 }
 
 /* ----- 換頁 ----- */
