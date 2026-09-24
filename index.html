@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>見面會小卡</title>
+<meta name="description" content="三語滑動小卡">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#2a1638">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="見面會小卡">
+<style>
+  :root {
+    --bg1: #2a1638;
+    --bg2: #4a2152;
+    --card: #fffaf6;
+    --ink: #2b1d2e;
+    --muted: #7a6680;
+    --accent: #ff5c8a;
+    --accent-2: #ffb3c7;
+    --rec: #e5304a;
+    --ok: #2f9e6a;
+    --line: rgba(255,255,255,.14);
+    --font: system-ui, -apple-system, "Segoe UI", "Leelawadee UI", Thonburi, "Noto Sans Thai",
+            "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: var(--font);
+    color: #fff;
+    background: radial-gradient(120% 90% at 20% 0%, var(--bg2), var(--bg1) 60%) fixed, var(--bg1);
+    overflow: hidden;
+    -webkit-user-select: none; user-select: none;
+    overscroll-behavior: none;
+  }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+  .view { position: fixed; inset: 0; display: none; flex-direction: column; }
+  .view.active { display: flex; }
+
+  /* ---------- Start screen ---------- */
+  #start { overflow-y: auto; padding: calc(24px + var(--safe-t)) 20px calc(24px + var(--safe-b)); align-items: center; }
+  .start-inner { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 18px; }
+  .brand { text-align: center; margin-top: 8px; }
+  .brand .logo { font-size: 56px; line-height: 1; }
+  .brand h1 { margin: 10px 0 4px; font-size: 26px; letter-spacing: .02em; }
+  .brand p { margin: 0; color: rgba(255,255,255,.7); font-size: 15px; }
+  .panel { background: rgba(255,255,255,.07); border: 1px solid var(--line); border-radius: 18px; padding: 16px; }
+  .panel h2 { font-size: 15px; margin: 0 0 10px; color: rgba(255,255,255,.85); font-weight: 600; }
+  .panel .hint { font-size: 13px; color: rgba(255,255,255,.6); margin: 8px 0 0; line-height: 1.5; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button { padding: 12px 8px; border-radius: 12px; background: rgba(255,255,255,.08); border: 1.5px solid transparent; font-size: 15px; line-height: 1.35; }
+  .seg button small { display: block; opacity: .65; font-size: 13px; }
+  .seg button[aria-pressed="true"] { border-color: var(--accent); background: rgba(255,92,138,.18); }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .btn { padding: 12px 16px; border-radius: 12px; background: rgba(255,255,255,.12); font-size: 15px; }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .45; }
+  .btn-primary { background: var(--accent); color: #fff; font-weight: 700; font-size: 19px; padding: 16px; border-radius: 16px; width: 100%; box-shadow: 0 8px 24px rgba(255,92,138,.35); }
+  .btn-primary:disabled { opacity: .45; box-shadow: none; }
+  .status { font-size: 14px; color: rgba(255,255,255,.75); }
+  .status.ok { color: #7ee2b0; }
+  .status.err { color: #ff9aa9; }
+  #installBox[hidden], #installBtn[hidden] { display: none; }
+
+  #lock { align-items: center; justify-content: center; padding: 24px 20px; }
+  #lock .start-inner { gap: 14px; }
+  #lock input {
+    width: 100%; padding: 14px 16px; border-radius: 14px; border: 1.5px solid var(--line);
+    background: rgba(0,0,0,.2); color: #fff; font: inherit; font-size: 18px; text-align: center; -webkit-user-select: text; user-select: text;
+  }
+  #lock input:focus { outline: none; border-color: var(--accent); }
+
+  /* ---------- Deck ---------- */
+  #deck { padding-top: var(--safe-t); padding-bottom: var(--safe-b); }
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px 4px; gap: 8px; }
+  .icon-btn { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,.1); font-size: 20px; display: grid; place-items: center; flex: none; }
+  .dots { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center; }
+  .dots i { width: 8px; height: 8px; border-radius: 99px; background: rgba(255,255,255,.3); transition: all .25s; }
+  .dots i.on { width: 22px; background: var(--accent); }
+  .track {
+    flex: 1; display: flex; overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .track::-webkit-scrollbar { display: none; }
+  .slide { flex: 0 0 100%; min-width: 0; scroll-snap-align: center; scroll-snap-stop: always; display: grid; place-items: center; padding: 10px 18px; }
+  .card {
+    width: 100%; min-width: 0; max-width: 760px; height: 100%; max-height: 760px;
+    background: var(--card); color: var(--ink); border-radius: 28px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.35);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    padding: clamp(20px, 5vw, 44px); gap: clamp(8px, 1.8vh, 18px);
+    position: relative; overflow: hidden;
+  }
+  .card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 8px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+  .to { font-size: 15px; font-weight: 700; color: #fff; background: var(--accent); padding: 5px 14px; border-radius: 99px; letter-spacing: .02em; }
+  .emoji { font-size: clamp(44px, 9vh, 80px); line-height: 1; }
+  .th { font-size: clamp(22px, 5.4vw, 50px); font-weight: 700; line-height: 1.55; margin: 0; max-width: 100%; overflow-wrap: anywhere; }
+  .en { font-size: clamp(17px, 3.2vw, 28px); font-weight: 600; margin: 0; color: #4b3550; line-height: 1.35; }
+  .zh { font-size: clamp(15px, 2.6vw, 22px); margin: 0; color: var(--muted); line-height: 1.45; }
+  .card.compact .emoji { font-size: clamp(32px, 6vh, 56px); }
+  .card.compact .th { font-size: clamp(20px, 4.4vw, 40px); line-height: 1.5; }
+  .card.compact .en { font-size: clamp(15px, 2.6vw, 22px); }
+  .card.compact .zh { font-size: clamp(14px, 2.2vw, 18px); }
+  .num { position: absolute; bottom: 12px; right: 18px; font-size: 13px; color: #b9a8bd; }
+  .navbar { display: flex; justify-content: space-between; align-items: center; padding: 6px 18px 14px; }
+  .nav { width: 64px; height: 52px; border-radius: 16px; background: rgba(255,255,255,.1); font-size: 26px; }
+  .nav:disabled { opacity: .25; }
+  .swipe-hint { font-size: 13px; color: rgba(255,255,255,.55); }
+
+  /* ---------- Record / sign cards ---------- */
+  .rec-area { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 2px; }
+  .rec-btn {
+    width: clamp(84px, 14vh, 120px); height: clamp(84px, 14vh, 120px); border-radius: 50%;
+    background: var(--rec); color: #fff; font-size: clamp(34px, 5.5vh, 48px);
+    display: grid; place-items: center; box-shadow: 0 10px 30px rgba(229,48,74,.4);
+    position: relative;
+  }
+  .rec-btn:active { transform: scale(.96); }
+  .rec-btn.recording::after {
+    content: ""; position: absolute; inset: -10px; border-radius: 50%; border: 4px solid var(--rec);
+    animation: pulse 1.2s ease-out infinite;
+  }
+  @keyframes pulse { from { transform: scale(.9); opacity: 1; } to { transform: scale(1.25); opacity: 0; } }
+  .rec-label { font-size: 15px; color: var(--muted); line-height: 1.4; }
+  .rec-label b { color: var(--ink); }
+  .timer { font-variant-numeric: tabular-nums; font-size: 26px; font-weight: 700; color: var(--rec); }
+  .done-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .card .btn { background: #f1e6ee; color: var(--ink); font-size: 15px; }
+  .card .btn-go { background: var(--accent); color: #fff; font-weight: 700; }
+  audio { width: min(100%, 360px); }
+  .saved { color: var(--ok); font-size: 14px; font-weight: 600; }
+
+  .card.sign { justify-content: flex-start; padding-top: clamp(22px, 3.5vh, 36px); }
+  .pad-wrap { flex: 1; width: 100%; min-height: 140px; position: relative; }
+  .pad {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    background: #fff; border: 2px dashed #e3c9d6; border-radius: 18px; touch-action: none; display: block;
+  }
+  .pad-hint { position: absolute; inset: 0; display: grid; place-items: center; color: #d6c2cf; font-size: clamp(20px, 3.4vw, 30px); pointer-events: none; font-weight: 600; }
+  .pens { display: flex; gap: 10px; align-items: center; }
+  .pen { width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; box-shadow: 0 0 0 1px rgba(0,0,0,.08) inset; }
+  .pen[aria-pressed="true"] { border-color: var(--ink); }
+  .sign-img { flex: 1; min-height: 0; max-width: 100%; object-fit: contain; border-radius: 14px; background: #fff; box-shadow: 0 0 0 1px #eee; }
+
+  /* ---------- Gallery ---------- */
+  #recs { background: var(--bg1); padding: calc(10px + var(--safe-t)) 0 var(--safe-b); }
+  #recs header { display: flex; align-items: center; gap: 10px; padding: 6px 16px 12px; border-bottom: 1px solid var(--line); }
+  #recs header h2 { margin: 0; font-size: 20px; flex: 1; }
+  .rec-list { flex: 1; overflow-y: auto; padding: 14px 16px 24px; display: flex; flex-direction: column; gap: 12px; max-width: 640px; width: 100%; margin: 0 auto; }
+  .rec-item { background: rgba(255,255,255,.07); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .rec-item .meta { display: flex; justify-content: space-between; gap: 10px; font-size: 15px; }
+  .rec-item .meta span { color: rgba(255,255,255,.6); font-size: 13px; }
+  .rec-item img { width: 100%; border-radius: 12px; background: #fff; }
+  .rec-item .row .btn { flex: 1; text-align: center; }
+  .btn-danger { background: rgba(229,48,74,.18); color: #ffb0bb; }
+  .empty { text-align: center; color: rgba(255,255,255,.6); padding: 40px 10px; line-height: 1.6; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: calc(24px + var(--safe-b)); transform: translateX(-50%) translateY(20px);
+    background: rgba(20,10,25,.92); color: #fff; padding: 12px 18px; border-radius: 12px; font-size: 15px;
+    opacity: 0; transition: all .25s; pointer-events: none; max-width: calc(100% - 32px); text-align: center; z-index: 50;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (orientation: landscape) and (max-height: 520px) {
+    .emoji { font-size: 36px; }
+    .th { font-size: clamp(20px, 4.5vh + 1vw, 38px); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== 開始畫面 ========== -->
+<section id="lock" class="view">
+  <form class="start-inner" id="lockForm" autocomplete="off">
+    <div class="brand"><div class="logo">🔒</div><h1>見面會小卡</h1><p>請輸入密碼</p></div>
+    <input type="password" id="pwInput" placeholder="密碼" autocomplete="current-password">
+    <button type="submit" class="btn-primary" id="unlockBtn">解鎖</button>
+    <p class="status" id="lockStatus" style="text-align:center"></p>
+    <p class="hint" style="text-align:center;color:rgba(255,255,255,.55);font-size:13px">這台裝置解鎖一次後會記住，之後離線也能直接打開。</p>
+  </form>
+</section>
+
+<section id="start" class="view">
+  <div class="start-inner">
+    <div class="brand">
+      <div class="logo">💌</div>
+      <h1>見面會小卡</h1>
+      <p id="subtitle"></p>
+    </div>
+
+    <div class="panel">
+      <h2>1. 泰文語氣（會影響句尾用字）</h2>
+      <div class="seg" id="genderSeg">
+        <button type="button" data-g="f">女生<small>句尾用 ค่ะ / คะ，我 = ฉัน</small></button>
+        <button type="button" data-g="m">男生<small>句尾用 ครับ，我 = ผม</small></button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>2. 先測試一下錄音</h2>
+      <div class="row">
+        <button type="button" class="btn" id="micTestBtn">🎙️ 錄 3 秒並播放</button>
+        <span class="status" id="micStatus"></span>
+      </div>
+      <p class="hint">出發前務必先測試一次，並允許使用麥克風，這樣現場才不會跳出權限視窗浪費時間。</p>
+    </div>
+
+    <div class="panel" id="installBox" hidden>
+      <h2>📲 安裝到主畫面（離線使用）</h2>
+      <button type="button" class="btn" id="installBtn" hidden>安裝這個 App</button>
+      <p class="hint" id="installHint"></p>
+    </div>
+
+    <p class="status" id="offlineStatus" style="text-align:center"></p>
+
+    <button type="button" class="btn-primary" id="goBtn" disabled>開始 ▶</button>
+    <button type="button" class="btn" id="openRecsFromStart" style="align-self:center">📂 我的收藏（錄音與簽名）</button>
+    <button type="button" class="btn" id="lockBtn" style="align-self:center;background:none;opacity:.6;font-size:13px">🔒 鎖上這台裝置</button>
+  </div>
+</section>
+
+<!-- ========== 卡片 ========== -->
+<section id="deck" class="view">
+  <div class="topbar">
+    <button type="button" class="icon-btn" id="homeBtn" aria-label="回首頁">🏠</button>
+    <div class="dots" id="dots"></div>
+    <button type="button" class="icon-btn" id="openRecsFromDeck" aria-label="我的收藏">📂</button>
+  </div>
+  <div class="track" id="track"></div>
+  <div class="navbar">
+    <button type="button" class="nav" id="prevBtn" aria-label="上一張">‹</button>
+    <span class="swipe-hint">左右滑動</span>
+    <button type="button" class="nav" id="nextBtn" aria-label="下一張">›</button>
+  </div>
+</section>
+
+<!-- ========== 我的收藏 ========== -->
+<section id="recs" class="view">
+  <header>
+    <button type="button" class="icon-btn" id="closeRecs" aria-label="返回">←</button>
+    <h2>我的收藏</h2>
+  </header>
+  <div class="rec-list" id="recList"></div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+/* 卡片內容加密後放在這裡（原文在 src/cards.js，用 build.mjs 產生） */
+const ENC = {"v":1,"iter":250000,"salt":"YeTKKa3sM+CVggNCsd748g==","iv":"jr1Dpb45WQnK6xDE","ct":"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"};
+let CARDS = [];
+const MAX_REC_SECONDS = 60;
+
+/* ---------- 小工具 ---------- */
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+let settings = Object.assign({ g: null }, store.get('fancards.settings', {}));
+const saveSettings = () => store.set('fancards.settings', settings);
+
+function toast(msg, ms = 2200) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), ms);
+}
+function fmt(sec) { sec = Math.max(0, Math.round(sec)); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function fill(text) {
+  const f = settings.g !== 'm';
+  return text
+    .replace(/\{p\}/g, f ? 'ค่ะ' : 'ครับ')
+    .replace(/\{q\}/g, f ? 'คะ' : 'ครับ')
+    .replace(/\{i\}/g, f ? 'ฉัน' : 'ผม');
+}
+const lines = (s) => esc(fill(s)).replace(/\n/g, '<br>');
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === id));
+}
+
+/* ---------- IndexedDB（存錄音與簽名） ---------- */
+const db = {
+  _p: null,
+  open() {
+    if (this._p) return this._p;
+    this._p = new Promise((res, rej) => {
+      const r = indexedDB.open('fancards', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('recs', { keyPath: 'id' });
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    return this._p;
+  },
+  async tx(mode, fn) {
+    const d = await this.open();
+    return new Promise((res, rej) => {
+      const t = d.transaction('recs', mode); const s = t.objectStore('recs');
+      const out = fn(s);
+      t.oncomplete = () => res(out && 'result' in out ? out.result : undefined);
+      t.onerror = () => rej(t.error);
+    });
+  },
+  put(rec) { return this.tx('readwrite', s => s.put(rec)); },
+  del(id) { return this.tx('readwrite', s => s.delete(id)); },
+  all() { return this.tx('readonly', s => s.getAll()); }
+};
+async function saveItem(kind, label, blob, extra) {
+  const item = Object.assign({ id: Date.now(), created: new Date().toISOString(), kind, label, mime: blob.type, data: await blob.arrayBuffer() }, extra);
+  try { await db.put(item); return true; }
+  catch (e) { toast('儲存失敗：' + (e && e.message || e), 4000); return false; }
+}
+
+/* ---------- 錄音 ---------- */
+function pickMime() {
+  if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) return '';
+  for (const m of ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus']) {
+    if (MediaRecorder.isTypeSupported(m)) return m;
+  }
+  return '';
+}
+function extFor(mime) {
+  if (/png/.test(mime)) return 'png';
+  if (/mp4|m4a|aac/.test(mime)) return 'm4a';
+  if (/ogg/.test(mime)) return 'ogg';
+  return 'webm';
+}
+function micSupported() { return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder); }
+function micErrorText(e) {
+  const n = e && e.name;
+  if (!window.isSecureContext) return '需要用 https 網址開啟才能錄音';
+  if (n === 'NotAllowedError' || n === 'SecurityError') return '麥克風權限被拒絕，請到設定中允許';
+  if (n === 'NotFoundError') return '找不到麥克風';
+  return '無法使用麥克風（' + (n || e) + '）';
+}
+
+// 通用錄音器：start() 開始，stop() 結束並回傳 {blob, mime, duration}
+function createRecorder() {
+  let rec, stream, chunks = [], t0 = 0, resolveStop;
+  return {
+    async start() {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      const mime = pickMime();
+      rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      chunks = [];
+      rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+      rec.onstop = () => {
+        const type = rec.mimeType || mime || 'audio/mp4';
+        stream.getTracks().forEach(t => t.stop());
+        resolveStop({ blob: new Blob(chunks, { type }), mime: type, duration: (performance.now() - t0) / 1000 });
+      };
+      rec.start(1000);
+      t0 = performance.now();
+    },
+    stop() {
+      return new Promise((res) => {
+        resolveStop = res;
+        if (rec && rec.state !== 'inactive') rec.stop(); else res(null);
+      });
+    },
+    elapsed() { return (performance.now() - t0) / 1000; }
+  };
+}
+
+/* ---------- 開始畫面 ---------- */
+function renderStart() {
+  document.querySelectorAll('#genderSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.g === settings.g)));
+  $('goBtn').disabled = !settings.g;
+  $('goBtn').textContent = settings.g ? '開始 ▶' : '請先選擇泰文語氣';
+}
+$('genderSeg').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  settings.g = b.dataset.g; saveSettings(); renderStart();
+});
+
+$('micTestBtn').addEventListener('click', async () => {
+  const st = $('micStatus'), btn = $('micTestBtn');
+  if (!micSupported()) { st.className = 'status err'; st.textContent = '這個瀏覽器不支援錄音'; return; }
+  btn.disabled = true;
+  const r = createRecorder();
+  try {
+    await r.start();
+  } catch (e) { st.className = 'status err'; st.textContent = micErrorText(e); btn.disabled = false; return; }
+  st.className = 'status'; st.textContent = '錄音中… 說句話試試';
+  await new Promise(res => setTimeout(res, 3000));
+  const out = await r.stop();
+  st.textContent = '播放中…';
+  const a = new Audio(URL.createObjectURL(out.blob));
+  a.onended = () => { st.className = 'status ok'; st.textContent = '✓ 有聽到聲音就代表可以用'; btn.disabled = false; };
+  a.onerror = () => { st.className = 'status err'; st.textContent = '錄到了但無法播放'; btn.disabled = false; };
+  a.play().catch(() => { st.className = 'status ok'; st.textContent = '✓ 錄音成功'; btn.disabled = false; });
+});
+
+let wakeLock = null;
+async function keepAwake() {
+  try { if ('wakeLock' in navigator && document.visibilityState === 'visible') wakeLock = await navigator.wakeLock.request('screen'); } catch {}
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && $('deck').classList.contains('active')) keepAwake(); });
+
+$('goBtn').addEventListener('click', () => {
+  buildDeck();
+  showView('deck');
+  goTo(0, false);
+  keepAwake();
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch {}
+});
+
+/* ---------- 卡片 ---------- */
+let idx = 0;
+let active = null;   // 正在錄音：{ i, recorder, timerId }
+
+function cardInner(c, to) {
+  return `${to ? `<div class="to">${esc(to)}</div>` : ''}
+    <div class="emoji">${c.emoji}</div>
+    <p class="th" lang="th">${lines(c.th)}</p>
+    <p class="en" lang="en">${lines(c.en)}</p>
+    <p class="zh">${lines(c.zh)}</p>`;
+}
+const numTag = (i) => `<span class="num">${i + 1} / ${CARDS.length}</span>`;
+const cardEl = (i) => document.querySelector(`#track .slide:nth-child(${i + 1}) .card`);
+
+function buildDeck() {
+  if (active) { clearInterval(active.timerId); active.recorder.stop(); active = null; }
+  const track = $('track');
+  track.innerHTML = CARDS.map(() => '<div class="slide"><div class="card"></div></div>').join('');
+  CARDS.forEach((c, i) => {
+    if (c.type === 'record') renderRecCard(i, 'idle');
+    else if (c.type === 'sign') renderSignCard(i, 'idle');
+    else { const el = cardEl(i); el.innerHTML = cardInner(c) + numTag(i); if (fill(c.th).length > 60) el.classList.add('compact'); }
+  });
+  $('dots').innerHTML = CARDS.map(() => '<i></i>').join('');
+}
+
+/* ----- 錄音卡 ----- */
+function renderRecCard(i, state, data) {
+  const c = CARDS[i], card = cardEl(i);
+  card.className = 'card compact';
+  if (state === 'idle') {
+    card.innerHTML = cardInner(c, c.to) + `
+      <div class="rec-area">
+        <button type="button" class="rec-btn" aria-label="開始錄音">🎙️</button>
+        <div class="rec-label"><b lang="th">กดเพื่ออัดเสียง</b> · 按下開始錄音</div>
+      </div>` + numTag(i);
+    card.querySelector('.rec-btn').onclick = () => startRecording(i);
+  } else if (state === 'recording') {
+    card.innerHTML = cardInner(c, c.to) + `
+      <div class="rec-area">
+        <button type="button" class="rec-btn recording" aria-label="停止錄音">■</button>
+        <div class="timer">0:00</div>
+        <div class="rec-label"><b lang="th">กำลังอัดเสียง…</b> Recording… · 再按一次停止</div>
+      </div>` + numTag(i);
+    card.querySelector('.rec-btn').onclick = stopRecording;
+  } else if (state === 'done') {
+    card.innerHTML = cardInner(c.thanks, c.to) + `
+      <div class="rec-area">
+        <audio controls src="${data.url}"></audio>
+        <div class="saved">✓ 已存到「我的收藏」</div>
+        <div class="done-actions">
+          <button type="button" class="btn" data-act="again">🔁 再錄一段</button>
+          ${i < CARDS.length - 1 ? '<button type="button" class="btn btn-go" data-act="next">下一張 ›</button>' : ''}
+        </div>
+      </div>` + numTag(i);
+    card.querySelector('[data-act="again"]').onclick = () => renderRecCard(i, 'idle');
+    const nx = card.querySelector('[data-act="next"]'); if (nx) nx.onclick = () => goTo(i + 1);
+  }
+}
+
+async function startRecording(i) {
+  if (active) await stopRecording();
+  if (!micSupported()) { toast('這個瀏覽器不支援錄音'); return; }
+  const recorder = createRecorder();
+  try { await recorder.start(); }
+  catch (e) { toast(micErrorText(e), 3500); return; }
+  renderRecCard(i, 'recording');
+  const timerEl = cardEl(i).querySelector('.timer');
+  active = { i, recorder, timerId: setInterval(() => {
+    const s = recorder.elapsed();
+    timerEl.textContent = fmt(s);
+    if (s >= MAX_REC_SECONDS) stopRecording();
+  }, 250) };
+}
+async function stopRecording() {
+  if (!active) return;
+  const { i, recorder, timerId } = active; active = null; clearInterval(timerId);
+  const out = await recorder.stop();
+  if (!out || !out.blob.size) { toast('沒有錄到聲音，請再試一次'); renderRecCard(i, 'idle'); return; }
+  await saveItem('audio', CARDS[i].label, out.blob, { duration: out.duration });
+  renderRecCard(i, 'done', { url: URL.createObjectURL(out.blob) });
+}
+
+/* ----- 簽名卡 ----- */
+const PENS = ['#2b1d2e', '#ff5c8a', '#3a6fd8'];
+function renderSignCard(i, state, data) {
+  const c = CARDS[i], card = cardEl(i);
+  card.className = 'card compact sign';
+  if (state === 'idle') {
+    card.innerHTML = cardInner(c, c.to) + `
+      <div class="pad-wrap"><canvas class="pad"></canvas><div class="pad-hint" lang="th">เซ็นตรงนี้ · Sign here</div></div>
+      <div class="done-actions">
+        <div class="pens">${PENS.map((p, k) => `<button type="button" class="pen" style="background:${p}" aria-label="筆的顏色" aria-pressed="${k === 0}" data-c="${p}"></button>`).join('')}</div>
+        <button type="button" class="btn" data-act="clear">🧽 清除</button>
+        <button type="button" class="btn btn-go" data-act="save" disabled>✓ 完成</button>
+      </div>` + numTag(i);
+    setupPad(card, i);
+  } else if (state === 'done') {
+    card.innerHTML = cardInner(c.thanks) + `
+      <img class="sign-img" src="${data.url}" alt="簽名">
+      <div class="saved">✓ 已存到「我的收藏」</div>
+      <div class="done-actions"><button type="button" class="btn" data-act="again">✍️ 再簽一張</button></div>` + numTag(i);
+    card.querySelector('[data-act="again"]').onclick = () => renderSignCard(i, 'idle');
+  }
+}
+function setupPad(card, i) {
+  const canvas = card.querySelector('canvas'), hint = card.querySelector('.pad-hint');
+  const saveBtn = card.querySelector('[data-act="save"]');
+  const ctx = canvas.getContext('2d');
+  let color = PENS[0], drawing = false, last = null, dirty = false, strokes = [];
+  function size() {
+    const r = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    if (!r.width || !r.height) return;
+    canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    redraw();
+  }
+  function line(a, b, col) {
+    ctx.strokeStyle = col; ctx.lineWidth = Math.max(3, (b.p || .5) * 7); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  function redraw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    strokes.forEach(s => { for (let k = 1; k < s.pts.length; k++) line(s.pts[k - 1], s.pts[k], s.color); if (s.pts.length === 1) line(s.pts[0], s.pts[0], s.color); });
+  }
+  const pos = (e) => { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top, p: e.pressure || .5 }; };
+  canvas.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); canvas.setPointerCapture(e.pointerId);
+    drawing = true; last = pos(e); strokes.push({ color, pts: [last] }); line(last, last, color);
+    if (!dirty) { dirty = true; hint.style.display = 'none'; saveBtn.disabled = false; }
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!drawing) return;
+    const p = pos(e); line(last, p, color); strokes[strokes.length - 1].pts.push(p); last = p;
+  });
+  const end = () => { drawing = false; };
+  canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
+  card.querySelectorAll('.pen').forEach(b => b.onclick = () => {
+    color = b.dataset.c; card.querySelectorAll('.pen').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  });
+  card.querySelector('[data-act="clear"]').onclick = () => {
+    strokes = []; redraw(); dirty = false; hint.style.display = ''; saveBtn.disabled = true;
+  };
+  saveBtn.onclick = async () => {
+    // 輸出時墊白底，存成 PNG
+    const out = document.createElement('canvas'); out.width = canvas.width; out.height = canvas.height;
+    const o = out.getContext('2d'); o.fillStyle = '#ffffff'; o.fillRect(0, 0, out.width, out.height); o.drawImage(canvas, 0, 0);
+    const blob = await new Promise(res => out.toBlob(res, 'image/png'));
+    if (!blob) { toast('簽名存檔失敗'); return; }
+    await saveItem('sign', CARDS[i].label, blob);
+    renderSignCard(i, 'done', { url: URL.createObjectURL(blob) });
+  };
+  new ResizeObserver(size).observe(canvas);
+}
+
+/* ----- 換頁 ----- */
+const track = $('track');
+function slideWidth() { return track.clientWidth || 1; }
+function goTo(i, smooth = true) {
+  i = Math.max(0, Math.min(CARDS.length - 1, i));
+  track.scrollTo({ left: i * slideWidth(), behavior: smooth ? 'smooth' : 'auto' });
+  setIdx(i);
+}
+function setIdx(i) {
+  idx = i;
+  document.querySelectorAll('#dots i').forEach((d, k) => d.classList.toggle('on', k === i));
+  $('prevBtn').disabled = i === 0;
+  $('nextBtn').disabled = i === CARDS.length - 1;
+}
+let scrollRaf = 0;
+track.addEventListener('scroll', () => {
+  cancelAnimationFrame(scrollRaf);
+  scrollRaf = requestAnimationFrame(() => {
+    const i = Math.round(track.scrollLeft / slideWidth());
+    if (i !== idx) setIdx(i);
+  });
+}, { passive: true });
+window.addEventListener('resize', () => { if ($('deck').classList.contains('active')) track.scrollTo({ left: idx * slideWidth() }); });
+$('prevBtn').addEventListener('click', () => goTo(idx - 1));
+$('nextBtn').addEventListener('click', () => goTo(idx + 1));
+document.addEventListener('keydown', (e) => {
+  if (!$('deck').classList.contains('active')) return;
+  if (e.key === 'ArrowRight') goTo(idx + 1);
+  if (e.key === 'ArrowLeft') goTo(idx - 1);
+});
+$('homeBtn').addEventListener('click', async () => {
+  if (active) await stopRecording();
+  try { if (wakeLock) { wakeLock.release(); wakeLock = null; } } catch {}
+  renderStart(); showView('start');
+});
+
+/* ---------- 我的收藏 ---------- */
+let recsReturnTo = 'start';
+const objectUrls = [];
+async function openRecs() {
+  if (active) await stopRecording();
+  recsReturnTo = $('deck').classList.contains('active') ? 'deck' : 'start';
+  showView('recs');
+  await renderRecs();
+}
+async function renderRecs() {
+  objectUrls.splice(0).forEach(u => URL.revokeObjectURL(u));
+  const list = $('recList');
+  let items = [];
+  try { items = await db.all(); } catch (e) { list.innerHTML = `<div class="empty">讀取失敗：${esc(e && e.message || e)}</div>`; return; }
+  items.sort((a, b) => b.id - a.id);
+  if (!items.length) { list.innerHTML = '<div class="empty">還沒有收藏<br>在錄音卡按 🎙️、在簽名卡簽名後就會出現在這裡</div>'; return; }
+  list.innerHTML = '';
+  items.forEach((r) => {
+    const kind = r.kind || 'audio';
+    const d = new Date(r.created);
+    const pad = (n) => String(n).padStart(2, '0');
+    const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+    const label = r.label || r.name || '';
+    const fname = `${label ? label.replace(/[\\/:*?"<>|']/g, '') + '-' : ''}${kind === 'sign' ? '簽名' : '錄音'}-${stamp}.${extFor(r.mime)}`;
+    const blob = new Blob([r.data], { type: r.mime });
+    const file = new File([blob], fname, { type: r.mime });
+    const url = URL.createObjectURL(blob); objectUrls.push(url);
+    const item = document.createElement('div');
+    item.className = 'rec-item';
+    const when = d.toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    item.innerHTML = `
+      <div class="meta"><b>${kind === 'sign' ? '✍️ 簽名' : '🎤 錄音'}${label ? ' · ' + esc(label) : ''}</b>
+        <span>${when}${kind === 'audio' ? ' · ' + fmt(r.duration) : ''}</span></div>
+      ${kind === 'sign' ? `<img src="${url}" alt="簽名">` : `<audio controls preload="metadata" src="${url}"></audio>`}
+      <div class="row">
+        <button type="button" class="btn" data-act="share">📤 分享／儲存</button>
+        <button type="button" class="btn btn-danger" data-act="del">🗑️ 刪除</button>
+      </div>`;
+    item.querySelector('[data-act="share"]').onclick = async () => {
+      try {
+        if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: fname }); return; }
+      } catch (e) { if (e && e.name === 'AbortError') return; }
+      const a = document.createElement('a'); a.href = url; a.download = fname;
+      document.body.appendChild(a); a.click(); a.remove();
+      toast('已下載：' + fname);
+    };
+    item.querySelector('[data-act="del"]').onclick = async () => {
+      if (!confirm('確定要刪除嗎？刪除後無法復原。')) return;
+      await db.del(r.id); renderRecs();
+    };
+    list.appendChild(item);
+  });
+}
+$('openRecsFromStart').addEventListener('click', openRecs);
+$('openRecsFromDeck').addEventListener('click', openRecs);
+$('closeRecs').addEventListener('click', () => {
+  document.querySelectorAll('#recList audio').forEach(a => a.pause());
+  showView(recsReturnTo);
+  if (recsReturnTo === 'deck') track.scrollTo({ left: idx * slideWidth() });
+});
+
+/* ---------- PWA：安裝與離線 ---------- */
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+let deferredPrompt = null;
+function renderInstall() {
+  const box = $('installBox');
+  if (isStandalone()) { box.hidden = true; return; }
+  box.hidden = false;
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  $('installBtn').hidden = !deferredPrompt;
+  $('installHint').textContent = ios
+    ? 'iPad／iPhone：用 Safari 開啟 → 點上方「分享」→「加入主畫面」。'
+    : (deferredPrompt ? '' : '安卓／Windows：用 Chrome 或 Edge 開啟 → 瀏覽器選單 →「安裝應用程式」或「加到主畫面」。');
+}
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; renderInstall(); });
+$('installBtn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; renderInstall();
+});
+window.addEventListener('appinstalled', renderInstall);
+
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready).then(() => {
+    const s = $('offlineStatus'); s.className = 'status ok'; s.textContent = '✓ 已可離線使用';
+  }).catch(() => {
+    const s = $('offlineStatus'); s.className = 'status err'; s.textContent = '離線功能啟用失敗，請確認是用 https 網址開啟';
+  });
+}
+
+/* ---------- 解鎖 ---------- */
+const b64 = (t) => Uint8Array.from(atob(t), ch => ch.charCodeAt(0));
+const fingerprint = () => ENC ? ENC.ct.slice(0, 32) : '';
+async function decryptData(pw) {
+  const te = new TextEncoder();
+  const base = await crypto.subtle.importKey('raw', te.encode(pw), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: b64(ENC.salt), iterations: ENC.iter, hash: 'SHA-256' },
+    base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(ENC.iv) }, key, b64(ENC.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+function applyData(d) { CARDS = d.cards; $('subtitle').textContent = d.subtitle || ''; }
+$('lockForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const st = $('lockStatus'), pw = $('pwInput').value;
+  if (!pw) return;
+  if (!window.crypto || !crypto.subtle) { st.className = 'status err'; st.textContent = '需要用 https 網址開啟'; return; }
+  $('unlockBtn').disabled = true; st.className = 'status'; st.textContent = '解鎖中…';
+  try {
+    const d = await decryptData(pw);
+    store.set('fancards.unlocked', { fp: fingerprint(), data: d });
+    applyData(d); $('pwInput').value = ''; st.textContent = '';
+    renderStart(); showView('start');
+  } catch {
+    st.className = 'status err'; st.textContent = '密碼不對，再試一次';
+  }
+  $('unlockBtn').disabled = false;
+});
+$('lockBtn').addEventListener('click', () => {
+  if (!confirm('鎖上後要重新輸入密碼才能使用（錄音和簽名不會被刪除）。確定嗎？')) return;
+  store.set('fancards.unlocked', null); CARDS = []; showView('lock');
+});
+
+renderInstall();
+const cached = store.get('fancards.unlocked', null);
+if (cached && cached.fp === fingerprint()) { applyData(cached.data); renderStart(); showView('start'); }
+else showView('lock');
+
+// 預覽用：網址加上 #preview=3 會直接顯示第 3 張卡
+const pv = /preview=(\d+)/.exec(location.hash);
+if (pv && CARDS.length) { if (!settings.g) settings.g = 'f'; buildDeck(); showView('deck'); requestAnimationFrame(() => goTo(+pv[1] - 1, false)); }
+</script>
+</body>
+</html>

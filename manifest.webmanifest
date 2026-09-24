@@ -1,0 +1,16 @@
+{
+  "name": "見面會小卡",
+  "short_name": "見面會小卡",
+  "description": "泰文、英文、中文三語滑動小卡，最後一頁可以錄音",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#2a1638",
+  "theme_color": "#2a1638",
+  "lang": "zh-Hant",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
