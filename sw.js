@@ -1,5 +1,5 @@
 // 離線快取：改了任何檔案後，把版本號 +1，裝置下次連網就會更新
-const VERSION = 'fancards-a1cf42e57c';
+const VERSION = 'fancards-9fdfb885df';
 const FILES = [
   './',
   'index.html',
