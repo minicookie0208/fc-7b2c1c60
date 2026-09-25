@@ -1,5 +1,5 @@
 // 離線快取：版本號由 build.mjs 自動更新，裝置連網時就會拿到新版
-const VERSION = 'fancards-8969514da9';
+const VERSION = 'fancards-99fcc7debf';
 const FILES = [
   './',
   'index.html',
