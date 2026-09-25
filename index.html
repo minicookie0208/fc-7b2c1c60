@@ -473,6 +473,7 @@ $('goBtn').addEventListener('click', () => {
   buildDeck();
   showView('deck');
   goTo(0, false);
+  if (!autoSay(0)) unlockPlayer();   // 按「開始」進到第一頁就播放；第一頁沒語音也先解鎖播放器
   keepAwake();
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch {}
 });
@@ -804,17 +805,36 @@ function stopSay() {
   if (playingBtn) { playingBtn.classList.remove('on'); playingBtn = null; }
 }
 player.addEventListener('ended', stopSay);
-track.addEventListener('click', (e) => {
-  const b = e.target.closest('[data-say]'); if (!b) return;
-  if (playingBtn === b) { stopSay(); return; }   // 再按一次就停
+function playSay(b, auto = false) {
   stopSay();
   const clip = sayClips[+b.dataset.say];
   player.src = clip[settings.g === 'm' ? 'm' : 'f'];
   player.defaultPlaybackRate = player.playbackRate = +(b.dataset.rate || 1);
   player.preservesPitch = true;
   playingBtn = b; b.classList.add('on');
-  player.play().catch(() => { stopSay(); toast('無法播放'); });
+  player.play().catch(() => { stopSay(); if (!auto) toast('無法播放'); });
+}
+track.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-say]'); if (!b) return;
+  if (playingBtn === b) { stopSay(); return; }   // 再按一次就停
+  playSay(b);
 });
+/* ----- 換頁後自動播放（等滑動停下來才播，避免滑到一半就出聲） ----- */
+let autoTimer = 0;
+function autoSay(i) {
+  clearTimeout(autoTimer);
+  if (active || !$('deck').classList.contains('active')) return;
+  const b = document.querySelector(`#track .slide:nth-child(${i + 1}) [data-say]:not([data-rate])`);
+  if (b) playSay(b, true);
+  return !!b;
+}
+function scheduleAutoSay(i) {
+  clearTimeout(autoTimer);
+  autoTimer = setTimeout(() => { if (i === idx) autoSay(i); }, 450);
+}
+// iOS 需要在使用者點擊當下先播放一次，之後換頁自動播放才不會被擋
+const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+function unlockPlayer() { try { player.src = SILENT; player.play().catch(() => {}); } catch {} }
 function slideWidth() { return track.clientWidth || 1; }
 function goTo(i, smooth = true) {
   i = Math.max(0, Math.min(CARDS.length - 1, i));
@@ -822,7 +842,7 @@ function goTo(i, smooth = true) {
   setIdx(i);
 }
 function setIdx(i) {
-  if (i !== idx) stopSay();   // 換頁就停止播放
+  if (i !== idx) { stopSay(); scheduleAutoSay(i); }   // 換頁就停止播放，停好後自動播這頁
   idx = i;
   document.querySelectorAll('#dots i').forEach((d, k) => d.classList.toggle('on', k === i));
   $('prevBtn').disabled = i === 0;
